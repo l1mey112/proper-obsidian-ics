@@ -1,8 +1,4 @@
 export interface ICSSettings {
-    format: {
-        timeFormat: string
-        dataViewSyntax: boolean,
-    },
     calendars: Record < string, Calendar > ;
 }
 
@@ -17,17 +13,12 @@ export interface Calendar {
     ownerEmail?: string;
 
     calendarType: 'remote' | 'vdir';
-    format: {
-        checkbox: boolean;
-        includeEventEndTime: boolean;
-        icsName: boolean;
-        summary: boolean;
-        location: boolean;
-        description: boolean;
-        showAttendees: boolean;
-        showOngoing: boolean;
-        showTransparentEvents: boolean;
-    }
+
+    folder: string;
+    tags: string;
+    linkIgnores: string; // "Online" will not convert to [[Online]]
+    placeIgnores: string; // "See School for Location" will not show on title
+    linkClassRegex: string; // for regex \w{4}\d{4} : CLAS1000 -> [[CLAS1000]]
 }
 
 export const DEFAULT_CALENDAR_FORMAT = {
@@ -44,10 +35,6 @@ export const DEFAULT_CALENDAR_FORMAT = {
 };
 
 export const DEFAULT_SETTINGS: ICSSettings = {
-    format: {
-        timeFormat: "HH:mm",
-        dataViewSyntax: false,
-    },
     calendars: {
     }
 };

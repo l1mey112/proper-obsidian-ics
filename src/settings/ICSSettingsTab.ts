@@ -39,41 +39,6 @@ export default class ICSSettingsTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
-  // use this same format to create a description for the dataViewSyntax setting
-  private timeFormattingDescription(): DocumentFragment {
-    this.updateTimeFormatExample();
-
-    const descEl = document.createDocumentFragment();
-    descEl.appendText('Time format for events. HH:mm is 00:15. hh:mma is 12:15am.');
-    descEl.appendText(' For more syntax, refer to ');
-    descEl.appendChild(this.getMomentDocsLink());
-    descEl.appendText('.');
-
-    descEl.appendChild(document.createElement('p'));
-    descEl.appendText('Your current time format syntax looks like this: ');
-    descEl.appendChild(this.timeFormatExample);
-    descEl.appendText('.');
-    return descEl;
-  }
-
-  private getMomentDocsLink(): HTMLAnchorElement {
-    const a = document.createElement('a');
-    a.href = 'https://momentjs.com/docs/#/displaying/format/';
-    a.text = 'format reference';
-    a.target = '_blank';
-    return a;
-  }
-
-  private updateTimeFormatExample() {
-    this.timeFormatExample.innerText = moment(new Date()).format(this.plugin.data.format.timeFormat);
-  }
-
-  private dataViewSyntaxDescription(): DocumentFragment {
-    const descEl = document.createDocumentFragment();
-    descEl.appendText('Enable this option if you use the DataView plugin to query event start and end times.');
-    return descEl;
-  }
-
   display(): void {
     let {
       containerEl
@@ -104,8 +69,12 @@ export default class ICSSettingsTab extends PluginSettingTab {
                   icsName: modal.icsName,
                   icsUrl: modal.icsUrl,
                   ownerEmail: modal.ownerEmail,
-                  format: modal.format,
                   calendarType: modal.calendarType as 'remote' | 'vdir',
+                  folder: modal.folder,
+                  tags: modal.tags,
+                  linkIgnores: modal.linkIgnores,
+                  linkClassRegex: modal.linkClassRegex,
+                  placeIgnores: modal.placeIgnores,
                 });
                 this.display();
               }
@@ -142,8 +111,12 @@ export default class ICSSettingsTab extends PluginSettingTab {
                     icsName: modal.icsName,
                     icsUrl: modal.icsUrl,
                     ownerEmail: modal.ownerEmail,
-                    format: modal.format,
                     calendarType: modal.calendarType as 'remote' | 'vdir',
+                    folder: modal.folder,
+                    tags: modal.tags,
+                    linkIgnores: modal.linkIgnores,
+                    linkClassRegex: modal.linkClassRegex,
+                    placeIgnores: modal.placeIgnores,
                   });
                   this.display();
                 }
@@ -162,38 +135,6 @@ export default class ICSSettingsTab extends PluginSettingTab {
         });
     }
 
-    const formatSetting = new Setting(containerEl)
-      .setHeading().setName("Output Format");
-
-
-    let timeFormat: TextComponent;
-    const timeFormatSetting = new Setting(containerEl)
-      .setName("Time format")
-      .setDesc(this.timeFormattingDescription())
-      .addText((text) => {
-        timeFormat = text;
-        timeFormat.setValue(this.plugin.data.format.timeFormat).onChange(async (v) => {
-          this.plugin.data.format.timeFormat = v;
-          this.updateTimeFormatExample();
-          await this.plugin.saveSettings();
-        });
-      });
-
-    const dataViewSyntaxSetting = new Setting(containerEl)
-      .setName('DataView Metadata syntax for start and end times')
-      .setDesc(this.dataViewSyntaxDescription())
-      .addToggle(toggle => toggle
-        .setValue(this.plugin.data.format.dataViewSyntax || false)
-        .onChange(async (v) => {
-          this.plugin.data.format.dataViewSyntax = v;
-          await this.plugin.saveSettings();
-        }));
-
-    // Sponsor link - Thank you!
-    const divSponsor = containerEl.createDiv();
-    divSponsor.innerHTML = `<br/><hr/>A scratch my own itch project by <a href="https://muness.com/" target='_blank'>muness</a>.<br/>
-			<a href='https://www.buymeacoffee.com/muness' target='_blank'><img height="36" src='https://cdn.buymeacoffee.com/uploads/profile_pictures/default/79D6B5/MC.png' border='0' alt='Buy Me a Book' /></a>
-		`
   }
 
 }
@@ -207,22 +148,16 @@ class SettingsModal extends Modal {
   urlText: TextComponent;
   urlDropdown: DropdownComponent;
   ownerEmail: string = "";
+  folder: string = "";
+  tags: string = "";
+  linkIgnores: string = "";
+  linkClassRegex: string = "";
+  placeIgnores: string = "";
 
   saved: boolean = false;
   error: boolean = false;
   private hasChanges: boolean = false;
 
-  format: {
-    checkbox: boolean,
-    includeEventEndTime: boolean,
-    icsName: boolean,
-    summary: boolean,
-    location: boolean,
-    description: boolean,
-    showAttendees: boolean,
-    showOngoing: boolean,
-    showTransparentEvents: boolean,
-  } = DEFAULT_CALENDAR_FORMAT;
   calendarType: string;
   constructor(app: App, plugin: ICSPlugin, setting?: Calendar) {
     super(app);
@@ -231,11 +166,14 @@ class SettingsModal extends Modal {
       this.icsName = setting.icsName;
       this.icsUrl = setting.icsUrl;
       this.ownerEmail = setting.ownerEmail;
-      this.format = setting.format;
       this.calendarType = setting.calendarType || 'remote';
+      this.folder = setting.folder;
+      this.tags = setting.tags;
+      this.linkIgnores = setting.linkIgnores;
+      this.linkClassRegex = setting.linkClassRegex;
+      this.placeIgnores = setting.placeIgnores;
     }
   }
-
 
   listIcsDirectories(): string[] {
     const icsFiles = this.app.vault.getFiles().filter(f => f.extension === "ics");
@@ -271,6 +209,56 @@ class SettingsModal extends Modal {
           this.ownerEmail = value;
           this.hasChanges = true;
         });
+      });
+    
+    const folderSetting = new Setting(settingDiv)
+      .setName('Folder')
+      .setDesc('Where generated notes will be stored.')
+      .addText(text => {
+        text.setValue(this.folder).onChange(value => {
+          this.folder = value;
+          this.hasChanges = true;
+        });
+      });
+
+    const tagsSetting = new Setting(settingDiv)
+      .setName('Tags')
+      .setDesc('Tags to be added to generated notes, comma separated.')
+      .addText(text => {
+        text.setValue(this.tags).onChange(value => {
+          this.tags = value;
+          this.hasChanges = true;
+        });
+      });
+
+    const linkIgnoresSetting = new Setting(settingDiv)
+      .setName('Link Ignores')
+      .setDesc('Text that will not be converted to a link, comma separated.')
+      .addText(text => {
+        text.setValue(this.linkIgnores).onChange(value => {
+          this.linkIgnores = value;
+          this.hasChanges = true;
+        })
+      });
+
+    const placeIgnoresSetting = new Setting(settingDiv)
+      .setName('Place Ignores')
+      .setDesc('Text that will not be shown on the title, comma separated. Similar to Link Ignores.')
+      .addText(text => {
+        text.setValue(this.placeIgnores).onChange(value => {
+          this.placeIgnores = value;
+          this.hasChanges = true;
+        })
+      });
+
+    const linkClassRegexSetting = new Setting(settingDiv)
+      .setName('Link Class Regex')
+      .setDesc('Regex to convert text to a link.')
+      .addText(text => {
+        text.setValue(this.linkClassRegex).onChange(value => {
+          this.linkClassRegex = value;
+          this.hasChanges = true;
+        })
       });
 
     const calendarTypeSetting = new Setting(settingDiv)
@@ -322,106 +310,6 @@ class SettingsModal extends Modal {
 
     // Call updateUrlSetting initially
     updateUrlSetting();
-
-    new Setting(settingDiv)
-      .setHeading().setName("Output Format");
-
-    // set each of the calendar format settings to the default if it's undefined
-    for (let f in DEFAULT_CALENDAR_FORMAT) {
-      if (this.format[f] == undefined) {
-        this.format[f] = DEFAULT_CALENDAR_FORMAT[f];
-      }
-    }
-
-    const checkboxToggle = new Setting(settingDiv)
-      .setName('Checkbox')
-      .setDesc('Use a checkbox for each event (will be a bullet otherwise)')
-      .addToggle(toggle => toggle
-        .setValue(this.format.checkbox)
-        .onChange(value => {
-          this.format.checkbox = value
-          this.hasChanges = true;
-        }));
-
-    const endTimeToggle = new Setting(settingDiv)
-      .setName('End time')
-      .setDesc('Include the event\'s end time')
-      .addToggle(toggle => toggle
-        .setValue(this.format.includeEventEndTime)
-        .onChange(value => {
-          this.format.includeEventEndTime = value;
-          this.hasChanges = true;
-        }));
-
-    const icsNameToggle = new Setting(settingDiv)
-      .setName('Calendar name')
-      .setDesc('Include the calendar name')
-      .addToggle(toggle => toggle
-        .setValue(this.format.icsName)
-        .onChange(value => {
-          this.format.icsName = value
-          this.hasChanges = true;
-        }));
-
-    const summaryToggle = new Setting(settingDiv)
-      .setName('Summary')
-      .setDesc('Include the summary field')
-      .addToggle(toggle => toggle
-        .setValue(this.format.summary)
-        .onChange(value => {
-          this.format.summary = value;
-          this.hasChanges = true;
-        }));
-
-    const locationToggle = new Setting(settingDiv)
-      .setName('Location')
-      .setDesc('Include the location field')
-      .addToggle(toggle => toggle
-        .setValue(this.format.location)
-        .onChange(value => {
-          this.format.location = value;
-          this.hasChanges = true;
-        }));
-
-    const descriptionToggle = new Setting(settingDiv)
-      .setName('Description')
-      .setDesc('Include the description field ')
-      .addToggle(toggle => toggle
-        .setValue(this.format.description)
-        .onChange(value => {
-          this.format.description = value
-          this.hasChanges = true;
-        }));
-
-    const showAttendeesToggle = new Setting(settingDiv)
-      .setName('Show Attendees')
-      .setDesc('Display attendees for the event')
-      .addToggle(toggle => toggle
-        .setValue(this.format.showAttendees)
-        .onChange(value => {
-          this.format.showAttendees = value;
-          this.hasChanges = true;
-        }));
-
-    const showOngoingToggle = new Setting(settingDiv)
-      .setName('Show Ongoing')
-      .setDesc('Display multi-day events that include target date')
-      .addToggle(toggle => toggle
-        .setValue(this.format.showOngoing)
-        .onChange(value => {
-          this.format.showOngoing = value;
-          this.hasChanges = true;
-        }));
-
-    const includeAvailableEventsToggle = new Setting(settingDiv)
-      .setName("Include 'Available' Events")
-      .setDesc("Display events marked as 'Available' (do not block time) in the calendar. These are also referred to as 'Transparent' events.")
-      .addToggle(toggle => toggle
-        .setValue(this.format.showTransparentEvents)
-        .onChange(value => {
-          this.format.showTransparentEvents = value;
-          this.hasChanges = true;
-        }));
 
     let footerEl = contentEl.createDiv();
     let footerButtons = new Setting(footerEl);
