@@ -22,6 +22,7 @@ import {
 } from 'obsidian';
 import { parseIcs, filterMatchingEvents, extractMeetingInfo } from './icalUtils';
 import { IEvent, IAttendee } from './IEvent';
+import { recur_event } from './ical_recurrence';
 
 export default class ICSPlugin extends Plugin {
 	data: ICSSettings;
@@ -94,6 +95,8 @@ export default class ICSPlugin extends Plugin {
 
 			await this.app.vault.createFolder(calendarSetting.folder).catch(() => {})
 
+			console.log('ics', icsArray)
+
 			var dateEvents;
 
 			// Exception handling for parsing and filtering
@@ -118,6 +121,16 @@ export default class ICSPlugin extends Plugin {
 				console.error(`Error filtering events for calendar ${calendarSetting.icsName}: ${filterError}`);
 				errorMessages.push(`Error filtering events in calendar "${calendarSetting.icsName}"`);
 			}
+
+			/* console.log('events', dateEvents)
+
+			for (const event of dateEvents) {
+				console.log('date event', event, recur_event(event))
+			} */
+
+			// Recur all events
+			console.log('events', dateEvents)
+			dateEvents = dateEvents.flatMap(event => recur_event(event))
 
 			let events: IEvent[] = [];
 			const timeFormat = "HH:mm";
