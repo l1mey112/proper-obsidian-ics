@@ -75,6 +75,7 @@ export default class ICSSettingsTab extends PluginSettingTab {
                   linkIgnores: modal.linkIgnores,
                   linkClassRegex: modal.linkClassRegex,
                   linkClassTagPrefix: modal.linkClassTagPrefix,
+                  linkClassTagKinds: modal.linkClassTagKinds,
                   placeIgnores: modal.placeIgnores,
                 });
                 this.display();
@@ -118,6 +119,7 @@ export default class ICSSettingsTab extends PluginSettingTab {
                     linkIgnores: modal.linkIgnores,
                     linkClassRegex: modal.linkClassRegex,
                     linkClassTagPrefix: modal.linkClassTagPrefix,
+                    linkClassTagKinds: modal.linkClassTagKinds,
                     placeIgnores: modal.placeIgnores,
                   });
                   this.display();
@@ -155,6 +157,7 @@ class SettingsModal extends Modal {
   linkIgnores: string = "";
   linkClassRegex: string = "";
   linkClassTagPrefix: string = "";
+  linkClassTagKinds: string = "";
   placeIgnores: string = "";
 
   saved: boolean = false;
@@ -175,6 +178,7 @@ class SettingsModal extends Modal {
       this.linkIgnores = setting.linkIgnores;
       this.linkClassRegex = setting.linkClassRegex;
       this.linkClassTagPrefix = setting.linkClassTagPrefix;
+      this.linkClassTagKinds = setting.linkClassTagKinds;
       this.placeIgnores = setting.placeIgnores;
     }
   }
@@ -271,6 +275,16 @@ class SettingsModal extends Modal {
       .addText(text => {
         text.setValue(this.linkClassTagPrefix).onChange(value => {
           this.linkClassTagPrefix = value;
+          this.hasChanges = true;
+        })
+      });
+
+    const linkClassTagKindsSetting = new Setting(settingDiv)
+      .setName('Link Class Tag Kinds')
+      .setDesc('Kinds of classes to add to the link class tag.')
+      .addText(text => {
+        text.setValue(this.linkClassTagKinds).onChange(value => {
+          this.linkClassTagKinds = value;
           this.hasChanges = true;
         })
       });

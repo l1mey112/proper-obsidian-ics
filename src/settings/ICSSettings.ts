@@ -20,6 +20,7 @@ export interface Calendar {
     placeIgnores: string; // "See School for Location" will not show on title
     linkClassRegex: string; // for regex \w{4}\d{4} : CLAS1000 -> [[CLAS1000]]
     linkClassTagPrefix: string; // finds CLAS1000 with prefix uni/course -> uni/course/CLAS1000
+    linkClassTagKinds: string; // finds lecture, tutorial, lab, etc. -> uni/course/CLAS1000/lecture
 }
 
 export const DEFAULT_CALENDAR_FORMAT = {

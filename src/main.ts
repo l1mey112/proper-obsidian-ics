@@ -231,7 +231,11 @@ tags:
 		const tags = calendar.tags.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0)
 		const linkIgnores = calendar.linkIgnores.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0)
 		const placeTitleIgnores = calendar.placeIgnores.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0)
+		const linkClassTagKinds = calendar.linkClassTagKinds.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0)
 
+		// regex to detect class kinds
+		const classKindsRegex = new RegExp(`(${linkClassTagKinds.join("|")})`, "ig")
+		// regex to detect class names
 		const classRegex = calendar.linkClassRegex !== '' ? new RegExp(calendar.linkClassRegex, "g") : null
 
 		for (const event of events) {
@@ -249,6 +253,7 @@ tags:
 			
 			let description = event.description
 			let classesFound = new Set<string>()
+			let classKind = ''
 
 			// find classes
 			// description, replace links
@@ -262,6 +267,14 @@ tags:
 				}
 				
 				description = description.replace(classRegex, match => `[[${match}]]`)
+
+				
+
+				if (classKindsRegex) {
+					for (const match of description.matchAll(classKindsRegex)) {
+						classKind = match[0].toLowerCase()
+					}
+				}
 			}
 
 			const eventTags = [...tags]
@@ -269,7 +282,13 @@ tags:
 			if (calendar.linkClassTagPrefix) {
 				// add to tags
 				for (const match of classesFound) {
-					eventTags.push(`${calendar.linkClassTagPrefix}/${match}`)
+					let classTag = `${calendar.linkClassTagPrefix}/${match}`
+
+					if (classKind) {
+						classTag = `${classTag}/${classKind}`
+					}
+					
+					eventTags.push(classTag)
 				}
 			}
 
