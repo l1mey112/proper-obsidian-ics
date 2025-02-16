@@ -74,6 +74,7 @@ export default class ICSSettingsTab extends PluginSettingTab {
                   tags: modal.tags,
                   linkIgnores: modal.linkIgnores,
                   linkClassRegex: modal.linkClassRegex,
+                  linkClassTagPrefix: modal.linkClassTagPrefix,
                   placeIgnores: modal.placeIgnores,
                 });
                 this.display();
@@ -116,6 +117,7 @@ export default class ICSSettingsTab extends PluginSettingTab {
                     tags: modal.tags,
                     linkIgnores: modal.linkIgnores,
                     linkClassRegex: modal.linkClassRegex,
+                    linkClassTagPrefix: modal.linkClassTagPrefix,
                     placeIgnores: modal.placeIgnores,
                   });
                   this.display();
@@ -152,6 +154,7 @@ class SettingsModal extends Modal {
   tags: string = "";
   linkIgnores: string = "";
   linkClassRegex: string = "";
+  linkClassTagPrefix: string = "";
   placeIgnores: string = "";
 
   saved: boolean = false;
@@ -171,6 +174,7 @@ class SettingsModal extends Modal {
       this.tags = setting.tags;
       this.linkIgnores = setting.linkIgnores;
       this.linkClassRegex = setting.linkClassRegex;
+      this.linkClassTagPrefix = setting.linkClassTagPrefix;
       this.placeIgnores = setting.placeIgnores;
     }
   }
@@ -257,6 +261,16 @@ class SettingsModal extends Modal {
       .addText(text => {
         text.setValue(this.linkClassRegex).onChange(value => {
           this.linkClassRegex = value;
+          this.hasChanges = true;
+        })
+      });
+    
+    const linkClassTagPrefixSetting = new Setting(settingDiv)
+      .setName('Link Class Tag Prefix')
+      .setDesc('Prefix to add to the link class tag if found using the regex.')
+      .addText(text => {
+        text.setValue(this.linkClassTagPrefix).onChange(value => {
+          this.linkClassTagPrefix = value;
           this.hasChanges = true;
         })
       });

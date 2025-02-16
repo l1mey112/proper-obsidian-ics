@@ -248,10 +248,29 @@ tags:
 			}
 			
 			let description = event.description
+			let classesFound = new Set<string>()
 
+			// find classes
 			// description, replace links
 			if (classRegex) {
+				for (const match of description.matchAll(classRegex)) {
+					classesFound.add(match[0])
+				}
+
+				for (const match of title.matchAll(classRegex)) {
+					classesFound.add(match[0])
+				}
+				
 				description = description.replace(classRegex, match => `[[${match}]]`)
+			}
+
+			const eventTags = [...tags]
+
+			if (calendar.linkClassTagPrefix) {
+				// add to tags
+				for (const match of classesFound) {
+					eventTags.push(`${calendar.linkClassTagPrefix}/${match}`)
+				}
 			}
 
 			const content =
@@ -266,7 +285,7 @@ seen:
   -
 place: "${place}"
 tags:
-  - ${tags.join("\n  - ")}
+  - ${eventTags.join("\n  - ")}
 ---
 ${description}
 `
